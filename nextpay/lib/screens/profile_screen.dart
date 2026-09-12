@@ -1,5 +1,7 @@
 import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:nextpay/screens/login_screen.dart';
 import 'package:provider/provider.dart';
@@ -16,7 +18,6 @@ import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 import '../app_colors.dart';
 import '../models/wallet.dart';
-import '../services/offline_wallet_service.dart';
 import 'home_screen.dart';
 import 'scanner_screen.dart';
 
@@ -33,11 +34,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // "Share QR code" works from the profile list row too, not only from
   // inside the full-screen QR viewer where a Screenshot widget happens
   // to be on screen.
-  final ScreenshotController _shareCaptureController = ScreenshotController();
+  final GlobalKey _shareCaptureKey = GlobalKey();
   final ImagePicker _imagePicker = ImagePicker();
   File? _profileImage;
 
-  static const _prefKey = 'profile_image_path';
+  // FIX: this used to be one fixed key ('profile_image_path') and one fixed
+  // filename ('profile_photo.jpg') shared by every account on the device.
+  // Whoever logged in last would overwrite the same file, so a new account
+  // on the same device would see the previous account's photo (or vice
+  // versa). Both the pref key AND the file on disk are now namespaced by
+  // the current user's id — this key format matches HomeScreen's
+  // `_profileImageKey`, since both screens must agree on where the photo
+  // for a given account lives.
+  String _profileImageKey(String userId) => 'profile_image_path_$userId';
+
+  String? _resolveUserId() {
+    final id = context.read<AuthProvider>().user?.id;
+    return (id != null && id.isNotEmpty) ? id : null;
+  }
 
   @override
   void initState() {
@@ -45,88 +59,230 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _loadSavedImage();
   }
 
-  // ── Persistence / image handling (unchanged logic) ─────────────────────
+  // ── Persistence / image handling ────────────────────────────────────────
 
   Future<void> _loadSavedImage() async {
+    final userId = _resolveUserId();
+    if (userId == null) {
+      if (mounted) setState(() => _profileImage = null);
+      return;
+    }
+
     final prefs = await SharedPreferences.getInstance();
-    final path = prefs.getString(_prefKey);
+    final path = prefs.getString(_profileImageKey(userId));
     if (path != null) {
       final file = File(path);
       if (await file.exists()) {
-        setState(() => _profileImage = file);
+        if (mounted) setState(() => _profileImage = file);
       } else {
-        await prefs.remove(_prefKey);
+        await prefs.remove(_profileImageKey(userId));
+        if (mounted) setState(() => _profileImage = null);
       }
+    } else {
+      if (mounted) setState(() => _profileImage = null);
     }
   }
 
-  Future<void> _saveImagePath(String path) async {
+  Future<void> _saveImagePath(String userId, String path) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_prefKey, path);
+    await prefs.setString(_profileImageKey(userId), path);
   }
 
-  Future<void> _clearImagePath() async {
+  Future<void> _clearImagePath(String userId) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_prefKey);
+    await prefs.remove(_profileImageKey(userId));
   }
 
-  Future<File> _persistImage(File tempFile) async {
+  Future<File> _persistImage(String userId, File tempFile) async {
     final appDir = await getApplicationDocumentsDirectory();
-    final permanent = File('${appDir.path}/profile_photo.jpg');
+    // Per-user filename — this is the part the earlier fix in HomeScreen
+    // was still missing. Even with a per-user pref key, every account was
+    // still writing to the same physical file ('profile_photo.jpg'), so
+    // the file's contents got overwritten by whichever account uploaded a
+    // photo most recently, corrupting the "old" account's saved path too.
+    final permanent = File('${appDir.path}/profile_photo_$userId.jpg');
     return tempFile.copy(permanent.path);
   }
 
+  // Future<void> _handleShare() async {
+  //   try {
+  //     // Always capture from the hidden, always-mounted widget below rather
+  //     // than _screenshotController, which only has something to capture
+  //     // while the full-screen QR viewer happens to be open. This is why
+  //     // the old "Share QR code" row on this screen silently did nothing.
+  //     final imageBytes = await _shareCaptureController.capture();
+  //     if (imageBytes == null) {
+  //       if (mounted) {
+  //         ScaffoldMessenger.of(context).showSnackBar(
+  //           const SnackBar(content: Text("Couldn't prepare QR code to share")),
+  //         );
+  //       }
+  //       return;
+  //     }
+  //
+  //     final dir = await getTemporaryDirectory();
+  //     final file = File(
+  //       '${dir.path}/nextpay_qr_share_${DateTime.now().millisecondsSinceEpoch}.png',
+  //     );
+  //     await file.writeAsBytes(imageBytes);
+  //
+  //     if (!mounted) return;
+  //
+  //     final size = MediaQuery.of(context).size;
+  //     final rect = Rect.fromCenter(
+  //       center: Offset(size.width / 2, size.height * 0.75),
+  //       width: 200,
+  //       height: 50,
+  //     );
+  //
+  //     final result = await Share.shareXFiles(
+  //       [XFile(file.path)],
+  //       text: 'Scan to pay me on NextPay',
+  //       sharePositionOrigin: rect,
+  //     );
+  //
+  //     if (result.status == ShareResultStatus.dismissed) {
+  //       debugPrint("Share sheet dismissed by user");
+  //     }
+  //   } catch (e) {
+  //     debugPrint("Share error: $e");
+  //     if (mounted) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         const SnackBar(content: Text("Couldn't share QR code. Try again.")),
+  //       );
+  //     }
+  //   }
+  // }
+
   Future<void> _handleShare() async {
     try {
-      // Always capture from the hidden, always-mounted widget below rather
-      // than _screenshotController, which only has something to capture
-      // while the full-screen QR viewer happens to be open. This is why
-      // the old "Share QR code" row on this screen silently did nothing.
-      final imageBytes = await _shareCaptureController.capture();
-      if (imageBytes == null) {
+      // The share target is always mounted in the widget tree. Capture its
+      // RepaintBoundary directly instead of using ScreenshotController.
+      final boundaryContext = _shareCaptureKey.currentContext;
+
+      if (boundaryContext == null) {
+        debugPrint("QR share target is not mounted");
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Couldn't prepare QR code to share")),
+            const SnackBar(
+              content: Text("Couldn't prepare QR code to share"),
+            ),
           );
         }
         return;
       }
 
+      final renderObject = boundaryContext.findRenderObject();
+
+      if (renderObject is! RenderRepaintBoundary) {
+        debugPrint(
+          "QR share target is not a RenderRepaintBoundary: "
+          "${renderObject.runtimeType}",
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Couldn't prepare QR code to share"),
+            ),
+          );
+        }
+        return;
+      }
+
+      final boundary = renderObject;
+
+      // Make sure Flutter has painted the target before calling toImage().
+      await WidgetsBinding.instance.endOfFrame;
+
+      if (boundary.debugNeedsPaint) {
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        await WidgetsBinding.instance.endOfFrame;
+      }
+
+      final image = await boundary.toImage(pixelRatio: 3.0);
+
+      final byteData = await image.toByteData(
+        format: ui.ImageByteFormat.png,
+      );
+
+      image.dispose();
+
+      if (byteData == null) {
+        debugPrint("Failed to convert QR image to PNG bytes");
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Couldn't prepare QR code to share"),
+            ),
+          );
+        }
+        return;
+      }
+
+      final imageBytes = byteData.buffer.asUint8List();
+
       final dir = await getTemporaryDirectory();
+
       final file = File(
         '${dir.path}/nextpay_qr_share_${DateTime.now().millisecondsSinceEpoch}.png',
       );
-      await file.writeAsBytes(imageBytes);
+
+      await file.writeAsBytes(imageBytes, flush: true);
+
+      if (!await file.exists()) {
+        throw Exception("QR share file was not created");
+      }
 
       if (!mounted) return;
 
       final size = MediaQuery.of(context).size;
-      final rect = Rect.fromCenter(
-        center: Offset(size.width / 2, size.height * 0.75),
-        width: 200,
-        height: 50,
-      );
 
       final result = await Share.shareXFiles(
-        [XFile(file.path)],
+        [
+          XFile(
+            file.path,
+            mimeType: 'image/png',
+            name: 'nextpay_qr.png',
+          ),
+        ],
         text: 'Scan to pay me on NextPay',
-        sharePositionOrigin: rect,
+        sharePositionOrigin: Rect.fromCenter(
+          center: Offset(
+            size.width / 2,
+            size.height * 0.75,
+          ),
+          width: 200,
+          height: 50,
+        ),
       );
 
       if (result.status == ShareResultStatus.dismissed) {
         debugPrint("Share sheet dismissed by user");
       }
-    } catch (e) {
-      debugPrint("Share error: $e");
+    } catch (e, stackTrace) {
+      debugPrint("QR Share error: $e");
+      debugPrintStack(stackTrace: stackTrace);
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Couldn't share QR code. Try again.")),
+          const SnackBar(
+            content: Text("Couldn't share QR code. Try again."),
+          ),
         );
       }
     }
   }
 
   Future<void> _pickImage(ImageSource source) async {
+    final userId = _resolveUserId();
+    if (userId == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Please log in again to set a photo")),
+        );
+      }
+      return;
+    }
     try {
       final XFile? picked = await _imagePicker.pickImage(
         source: source,
@@ -135,22 +291,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
         maxHeight: 512,
       );
       if (picked == null) return;
-      final permanent = await _persistImage(File(picked.path));
-      await _saveImagePath(permanent.path);
-      setState(() => _profileImage = permanent);
+      final permanent = await _persistImage(userId, File(picked.path));
+      await _saveImagePath(userId, permanent.path);
+      if (mounted) setState(() => _profileImage = permanent);
     } catch (e) {
       debugPrint("Image pick error: $e");
     }
   }
 
   Future<void> _removeImage() async {
+    final userId = _resolveUserId();
     if (_profileImage != null) {
       try {
         if (await _profileImage!.exists()) await _profileImage!.delete();
       } catch (_) {}
     }
-    await _clearImagePath();
-    setState(() => _profileImage = null);
+    if (userId != null) {
+      await _clearImagePath(userId);
+    }
+    if (mounted) setState(() => _profileImage = null);
   }
 
   Future<void> _handleLogout() async {
@@ -656,72 +815,87 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
 
           // ── HIDDEN SHARE CAPTURE TARGET ───────────────────────────────
-          // Rendered off-screen at all times (not just while the full QR
-          // viewer is open) so the "Share QR code" row works no matter
-          // where it's tapped from.
-          Offstage(
-            offstage: true,
-            child: Screenshot(
-              controller: _shareCaptureController,
+          // IMPORTANT: do not use Offstage here. Offstage widgets are not
+          // painted, so RenderRepaintBoundary.toImage() has nothing reliable
+          // to capture. This target stays mounted and painted just outside
+          // the visible viewport.
+          Positioned(
+            left: -1000,
+            top: 0,
+            child: RepaintBoundary(
+              key: _shareCaptureKey,
               child: Material(
                 color: Colors.white,
-                child: Container(
+                child: SizedBox(
                   width: 320,
-                  padding: const EdgeInsets.all(24),
-                  color: Colors.white,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF534AB7),
-                              shape: BoxShape.circle,
-                            ),
-                            clipBehavior: Clip.antiAlias,
-                            child: _profileImage != null
-                                ? Image.file(_profileImage!, fit: BoxFit.cover)
-                                : Center(
-                              child: Text(
-                                initialsShort,
-                                style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600),
+                  child: Container(
+                    padding: const EdgeInsets.all(24),
+                    color: Colors.white,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 40,
+                              height: 40,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF534AB7),
+                                shape: BoxShape.circle,
                               ),
+                              clipBehavior: Clip.antiAlias,
+                              child: _profileImage != null
+                                  ? Image.file(
+                                      _profileImage!,
+                                      fit: BoxFit.cover,
+                                    )
+                                  : Center(
+                                      child: Text(
+                                        initialsShort,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              userName,
-                              style: const TextStyle(
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                userName,
+                                style: const TextStyle(
                                   color: Color(0xFF1A1A1A),
                                   fontSize: 16,
-                                  fontWeight: FontWeight.w600),
-                              overflow: TextOverflow.ellipsis,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        QrImageView(
+                          data: qrValue.isNotEmpty ? qrValue : "empty",
+                          size: 220,
+                          backgroundColor: Colors.white,
+                          eyeStyle: const QrEyeStyle(
+                            color: Color(0xFF1A1A1A),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      QrImageView(
-                        data: qrValue.isNotEmpty ? qrValue : "empty",
-                        size: 220,
-                        backgroundColor: Colors.white,
-                        eyeStyle: const QrEyeStyle(color: Color(0xFF1A1A1A)),
-                        dataModuleStyle:
-                        const QrDataModuleStyle(color: Color(0xFF1A1A1A)),
-                      ),
-                      const SizedBox(height: 12),
-                      const Text(
-                        "Scan to pay with NextPay app",
-                        style: TextStyle(fontSize: 12, color: Color(0xFF6B6B6B)),
-                      ),
-                    ],
+                          dataModuleStyle: const QrDataModuleStyle(
+                            color: Color(0xFF1A1A1A),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          "Scan to pay with NextPay app",
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF6B6B6B),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

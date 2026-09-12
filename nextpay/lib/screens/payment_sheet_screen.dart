@@ -12,6 +12,7 @@ import '../services/contact_cache_service.dart';
 import '../sms_payment/sms_payment_service.dart';
 import 'payment_pin_screen.dart';
 import '../widgets/payment_success_screen.dart';
+import '../widgets/app_feedback.dart';
 
 class PaymentSheetScreen extends StatefulWidget {
   final String receiverId;
@@ -78,26 +79,21 @@ class _PaymentSheetScreenState extends State<PaymentSheetScreen> {
     final amountText = _amountController.text.trim();
 
     if (amountText.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter amount')),
-      );
+      AppSnack.show(context, 'Enter amount', type: AppSnackType.error);
       return;
     }
 
     final amount = double.tryParse(amountText);
     if (amount == null || amount <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid amount')),
-      );
+      AppSnack.show(context, 'Invalid amount', type: AppSnackType.error);
       return;
     }
 
     if (amount < kMinTransferAmount) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-              'Minimum amount is ₹${kMinTransferAmount.toStringAsFixed(0)}'),
-        ),
+      AppSnack.show(
+        context,
+        'Minimum amount is ₹${kMinTransferAmount.toStringAsFixed(0)}',
+        type: AppSnackType.error,
       );
       return;
     }
@@ -108,10 +104,10 @@ class _PaymentSheetScreenState extends State<PaymentSheetScreen> {
     if (ownerUserId.isEmpty) {
       if (mounted) {
         setState(() => _isPaying = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('User session not found. Please login again.'),
-          ),
+        AppSnack.show(
+          context,
+          'User session not found. Please login again.',
+          type: AppSnackType.error,
         );
       }
       return;
@@ -121,9 +117,7 @@ class _PaymentSheetScreenState extends State<PaymentSheetScreen> {
     final locked = (wallet?.lockedBalance ?? 0).toDouble();
     final balance = (wallet?.balance ?? 0).toDouble();
     if (amount > balance - locked) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Insufficient balance')),
-      );
+      AppSnack.show(context, 'Insufficient balance', type: AppSnackType.error);
       return;
     }
 
@@ -164,19 +158,17 @@ class _PaymentSheetScreenState extends State<PaymentSheetScreen> {
       } on DioException catch (e) {
         debugPrint('ONLINE PAYMENT DioException (${e.type}): $e');
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Connection lost. Saving as offline transaction...'),
-            ),
+          AppSnack.show(
+            context,
+            'Connection lost. Saving as offline transaction...',
+            type: AppSnackType.info,
           );
         }
       } catch (e) {
         debugPrint('ONLINE PAYMENT ERROR: $e');
         if (mounted) {
           setState(() => _isPaying = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Payment failed')),
-          );
+          AppSnack.show(context, 'Payment failed', type: AppSnackType.error);
         }
         return;
       }
@@ -200,8 +192,10 @@ class _PaymentSheetScreenState extends State<PaymentSheetScreen> {
       if (senderId.isEmpty) {
         if (mounted) {
           setState(() => _isPaying = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('User not found. Please login again.')),
+          AppSnack.show(
+            context,
+            'User not found. Please login again.',
+            type: AppSnackType.error,
           );
         }
         return;
@@ -217,10 +211,10 @@ class _PaymentSheetScreenState extends State<PaymentSheetScreen> {
       if (result['success'] != true) {
         if (mounted) {
           setState(() => _isPaying = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(result['message']?.toString() ?? 'Offline payment failed'),
-            ),
+          AppSnack.show(
+            context,
+            result['message']?.toString() ?? 'Offline payment failed',
+            type: AppSnackType.error,
           );
         }
         return;
@@ -253,9 +247,7 @@ class _PaymentSheetScreenState extends State<PaymentSheetScreen> {
       debugPrint('OFFLINE PAYMENT ERROR: $e');
       if (mounted) {
         setState(() => _isPaying = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Something went wrong')),
-        );
+        AppSnack.show(context, 'Something went wrong', type: AppSnackType.error);
       }
     }
   }

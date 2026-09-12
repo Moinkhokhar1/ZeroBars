@@ -102,10 +102,7 @@ class PeopleRowState extends State<PeopleRow> {
         if (seen.contains(contactId)) continue;
         seen.add(contactId);
 
-        final cached = await cache.get(
-  ownerUserId: currentUserId,
-  userId: contactId,
-);
+        final cached = await cache.get(currentUserId, contactId);
         final name = (apiName.isNotEmpty && apiName != 'Unknown')
             ? apiName
             : (cached?['name']?.isNotEmpty == true
@@ -131,8 +128,7 @@ class PeopleRowState extends State<PeopleRow> {
         ));
       }
 
-      for (final contact in
-    await cache.getAllContacts(currentUserId)) {
+      for (final contact in await cache.getAllContacts(currentUserId)) {
         final id = contact['userId'] ?? '';
         if (id.isEmpty || seen.contains(id)) continue;
         seen.add(id);

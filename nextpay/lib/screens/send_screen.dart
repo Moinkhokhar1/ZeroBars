@@ -15,6 +15,7 @@ import '../offline/transaction_engine.dart';
 import '../offline/wallet_engine.dart';
 import '../sms_payment/sms_payment_service.dart';
 import 'package:audioplayers/audioplayers.dart';
+import '../widgets/app_feedback.dart';
 
 // ─── Success Modal ─────────────────────────────────────────────────────────
 class SuccessModal extends StatefulWidget {
@@ -477,25 +478,24 @@ class _SendScreenState extends State<SendScreen> {
     final receiverId = _receiverId;
     final amountText = _amountController.text.trim();
     if (receiverId == null || amountText.isEmpty) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('All fields required')));
+      AppSnack.show(context, 'All fields required', type: AppSnackType.error);
       return;
     }
     final numericAmount = double.tryParse(amountText);
     if (numericAmount == null || numericAmount <= 0) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Invalid amount')));
+      AppSnack.show(context, 'Invalid amount', type: AppSnackType.error);
       return;
     }
     if (numericAmount < kMinTransferAmount) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(
-              'Minimum amount is ₹${kMinTransferAmount.toStringAsFixed(0)}')));
+      AppSnack.show(
+        context,
+        'Minimum amount is ₹${kMinTransferAmount.toStringAsFixed(0)}',
+        type: AppSnackType.error,
+      );
       return;
     }
     if (numericAmount > availableBalance) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Insufficient balance')));
+      AppSnack.show(context, 'Insufficient balance', type: AppSnackType.error);
       return;
     }
     final auth = context.read<AuthProvider>();
@@ -536,24 +536,27 @@ class _SendScreenState extends State<SendScreen> {
           await _loadWallet();
         } else {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                content: Text(
-                    response.data['message'] ?? 'Transfer failed')));
+            AppSnack.show(
+              context,
+              response.data['message'] ?? 'Transfer failed',
+              type: AppSnackType.error,
+            );
           }
         }
       } on DioException catch (e) {
         debugPrint("ONLINE SEND DioException (${e.type}): $e");
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-              content: Text(
-                  'Connection lost. Saving as offline transaction...')));
+          AppSnack.show(
+            context,
+            'Connection lost. Saving as offline transaction...',
+            type: AppSnackType.info,
+          );
         }
         await _doOfflineSend(auth, receiverId, numericAmount);
       } catch (e) {
         debugPrint("ONLINE SEND ERROR (unexpected): $e");
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Transfer failed. Try again.')));
+          AppSnack.show(context, 'Transfer failed. Try again.', type: AppSnackType.error);
         }
       }
     } else {
@@ -609,18 +612,16 @@ class _SendScreenState extends State<SendScreen> {
     final ownerUserId = _resolveUserId(auth);
 
     if (ownerUserId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('User session not found. Please login again.'),
-        ),
+      AppSnack.show(
+        context,
+        'User session not found. Please login again.',
+        type: AppSnackType.error,
       );
       return;
     }
 
     if (input.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter mobile number')),
-      );
+      AppSnack.show(context, 'Enter mobile number', type: AppSnackType.error);
       return;
     }
 
@@ -681,13 +682,11 @@ class _SendScreenState extends State<SendScreen> {
       final looksLikePhone = digitsOnly.length >= 10 && digitsOnly.length <= 13;
       if (looksLikePhone) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Contact not saved offline. Connect once while online, '
-                    'or enter the receiver wallet ID.',
-              ),
-            ),
+          AppSnack.show(
+            context,
+            'Contact not saved offline. Connect once while online, '
+                'or enter the receiver wallet ID.',
+            type: AppSnackType.error,
           );
         }
         return;
@@ -701,17 +700,15 @@ class _SendScreenState extends State<SendScreen> {
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Offline mode: using wallet ID as receiver.'),
-          ),
+        AppSnack.show(
+          context,
+          'Offline mode: using wallet ID as receiver.',
+          type: AppSnackType.info,
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('User not found')),
-        );
+        AppSnack.show(context, 'User not found', type: AppSnackType.error);
       }
     } finally {
       if (mounted) {
@@ -730,8 +727,11 @@ class _SendScreenState extends State<SendScreen> {
           '';
       if (senderId.isEmpty) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-              content: Text('User not found. Please login again.')));
+          AppSnack.show(
+            context,
+            'User not found. Please login again.',
+            type: AppSnackType.error,
+          );
         }
         return;
       }
@@ -756,16 +756,17 @@ class _SendScreenState extends State<SendScreen> {
         });
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text(
-                  result['message'] ?? 'Offline transaction failed')));
+          AppSnack.show(
+            context,
+            result['message'] ?? 'Offline transaction failed',
+            type: AppSnackType.error,
+          );
         }
       }
     } catch (e) {
       debugPrint("OFFLINE SEND ERROR: $e");
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Something went wrong')));
+        AppSnack.show(context, 'Something went wrong', type: AppSnackType.error);
       }
     }
   }

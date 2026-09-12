@@ -9,6 +9,7 @@ import '../models/chat_message.dart';
 import '../services/offline_tx_service.dart';
 import '../services/message_service.dart';
 import 'transaction_detail_screen.dart';
+import '../widgets/app_feedback.dart';
 
 /// A single entry in the merged chat + payment timeline.
 class _TimelineEntry {
@@ -125,8 +126,10 @@ class _ContactHistoryScreenState extends State<ContactHistoryScreen> {
       debugPrint('SEND MESSAGE ERROR: $e');
       if (!mounted) return;
       _messageController.text = text;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Couldn't send message. Try again.")),
+      AppSnack.show(
+        context,
+        "Couldn't send message. Try again.",
+        type: AppSnackType.error,
       );
     } finally {
       if (mounted) setState(() => _sending = false);

@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -139,6 +141,18 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       setState(() => _otpValue = '');
       _showAlert("Error", result["message"] ?? "Login failed");
+      return;
+    }
+
+    // Success: auth.user/token are already committed at this point, so
+    // AppRoot (main.dart) has already rebuilt to OnboardingGate/HomeScreen
+    // internally. If this screen was reached via a pushed route (e.g. from
+    // the onboarding intro's "Sign In" link) rather than AppRoot's own
+    // inline build, that updated tree is sitting underneath us on the
+    // stack and stays invisible until we pop back to it — mirrors
+    // RegisterScreen's success handling.
+    if (mounted) {
+      Navigator.of(context).popUntil((route) => route.isFirst);
     }
   }
 

@@ -4,12 +4,14 @@ import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/theme_provider.dart';
 import 'services/api_service.dart';
+import 'services/storage_service.dart';
 import 'offline/wallet_engine.dart';
 import 'offline/sync_engine.dart';
 import 'offline/network_monitor.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/onboarding_gate.dart';
+import 'screens/splash_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -57,11 +59,16 @@ class _AppRootState extends State<AppRoot> with WidgetsBindingObserver {
   DateTime? _pausedAt;
   bool? _wasLoggedIn;
 
+  // Whether the first-launch intro (splash + onboarding carousel) has
+  // already been shown. Null while still reading from storage.
+  bool? _seenOnboarding;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _initLockState();
+    _initOnboardingState();
   }
 
   Future<void> _initLockState() async {
@@ -70,6 +77,12 @@ class _AppRootState extends State<AppRoot> with WidgetsBindingObserver {
       _locked = pinSet;
       _lockInitialized = true;     // ← new
     });
+  }
+
+  Future<void> _initOnboardingState() async {
+    final seen = await StorageService.getItem('has_seen_onboarding');
+    if (!mounted) return;
+    setState(() => _seenOnboarding = seen == '1');
   }
 
   @override
@@ -122,6 +135,18 @@ class _AppRootState extends State<AppRoot> with WidgetsBindingObserver {
       // ever appears once someone is actually signed in — never before
       // registration or login.
       return OnboardingGate(child: const HomeScreen());
+    }
+
+    // First-time visitors see the branded splash + onboarding carousel
+    // before landing on login/register. Returning (signed-out) users go
+    // straight to LoginScreen.
+    if (_seenOnboarding == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (_seenOnboarding == false) {
+      return const SplashScreen();
     }
 
     return const LoginScreen();

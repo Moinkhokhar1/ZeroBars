@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
 import '../app_colors.dart';
 import '../services/app_lock_service.dart';
+import '../widgets/app_feedback.dart';
 
 /// Shown after PIN is set. Asks the user if they want to enable biometrics.
 /// Calls [onDone] either way — biometric choice is optional.
@@ -39,8 +40,10 @@ class _BiometricPromptScreenState extends State<BiometricPromptScreen> {
       widget.onDone();
     } else {
       setState(() => _loading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Biometric auth failed — try again or skip')),
+      AppSnack.show(
+        context,
+        'Biometric auth failed — try again or skip',
+        type: AppSnackType.error,
       );
     }
   }
