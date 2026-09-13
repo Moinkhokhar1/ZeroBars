@@ -126,8 +126,8 @@ class _Wordmark extends StatelessWidget {
               letterSpacing: -1,
             ),
             children: [
-              TextSpan(text: "Next", style: TextStyle(color: Colors.white)),
-              TextSpan(text: "Pay", style: TextStyle(color: _purpleGlow)),
+              TextSpan(text: "Zero", style: TextStyle(color: Colors.white)),
+              TextSpan(text: "Bars", style: TextStyle(color: _purpleGlow)),
             ],
           ),
         ),

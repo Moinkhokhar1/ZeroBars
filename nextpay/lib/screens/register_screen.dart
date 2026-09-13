@@ -149,7 +149,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     const SizedBox(height: 16),
                     const Text(
-                      "NextPay",
+                      "ZeroBars",
                       style: TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.w600,

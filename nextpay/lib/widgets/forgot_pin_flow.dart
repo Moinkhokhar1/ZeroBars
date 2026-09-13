@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../services/app_lock_service.dart';
 
-/// Shown when someone has forgotten their NextPay PIN.
+/// Shown when someone has forgotten their ZeroBars PIN.
 ///
 /// The PIN only ever lives on this device (it's a salted hash in secure
 /// storage — there's nothing for a server to check it against), so the only

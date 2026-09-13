@@ -244,7 +244,7 @@ This project is **not open source**. No part of this codebase may be copied, mod
 *Making payments accessible everywhere, even without internet*
 
 </div> -->
-<div align="center">
+<!-- <div align="center">
 
 # ⚡ NextPay
 
@@ -612,4 +612,130 @@ This project is **not open source**. No part of this codebase may be copied, mod
 
 *Making payments accessible everywhere — even without a single bar of signal.*
 
-</div>
+</div> -->
+# NextPay
+
+A peer-to-peer wallet system designed to keep working when the network doesn't. The mobile client can create, sign, and queue a payment entirely offline, then reconcile it with the backend the moment a connection comes back — no failed transfers just because someone stepped into a dead zone.
+
+The repository is organized as three independent projects:
+
+| Folder | What it is | Stack |
+|---|---|---|
+| [`nextpay/`](./nextpay) | The mobile wallet app | Flutter / Dart |
+| [`server/`](./server) | The API the app talks to | Node.js, Express, Prisma, PostgreSQL |
+| [`gateway/`](./gateway) | An SMS-based fallback for initiating payments without the app | Node.js, Express, Twilio |
+
+---
+
+## Architecture
+
+```
+┌──────────────────────┐          ┌──────────────────────────┐
+│   nextpay (Flutter)   │  HTTPS   │   server (Express API)   │
+│                       │ ───────► │                           │
+│  • signs offline txs  │          │  • auth (JWT)             │
+│  • queues while       │  ◄─────  │  • wallet + balances      │
+│    offline, syncs     │          │  • transaction sync       │
+│    on reconnect       │          │  • messaging              │
+└──────────────────────┘          │  • bank/withdrawal         │
+                                   └─────────────┬─────────────┘
+                                                 │
+                                                 ▼
+                                   ┌──────────────────────────┐
+                                   │   gateway (Twilio SMS)    │
+                                   │  lets a transfer be       │
+                                   │  triggered by SMS instead │
+                                   │  of the app               │
+                                   └──────────────────────────┘
+```
+
+---
+
+## `nextpay/` — Mobile app
+
+Built with Flutter. The app assumes the network is unreliable rather than treating it as an edge case.
+
+**What it does:**
+- Sends and receives money by wallet ID, phone number, or QR code
+- Works fully offline: transactions are signed locally and the sent amount is locked out of the available balance immediately, so the same money can't be sent twice before a sync happens
+- Automatically re-syncs queued transactions once connectivity returns, and lets you trigger a manual sync too
+- App-level security: PIN setup, biometric unlock, and an auto-lock screen
+- In-app messaging with a contact, alongside their shared transaction history
+- Per-user local caching (contacts, offline transaction queue, profile photo) — every cache key is scoped to the signed-in user so switching accounts on the same device never leaks another user's data
+- A small custom in-app notification system (`AppSnack`) used instead of the framework's default snackbars, for consistent success/error/info styling across the app
+
+**Where things live** (`lib/`):
+- `screens/` — one file per screen (login, register, home, send, receive, scanner, history, profile, PIN setup, biometric prompt, etc.)
+- `services/` — API client, auth, wallet, contact cache, offline transaction store, sync, key management
+- `offline/` — the offline engine: transaction signing (`tx_signing.dart`), the sync engine, and a network monitor that watches for reconnection
+- `sms_payment/` — a device-side SMS payment path (listening for and sending payment SMS, with its own crypto util and key-sync service)
+- `providers/` — app-wide state (auth session, theme)
+- `models/`, `widgets/` — data models and shared UI components
+
+**Running it:**
+```bash
+cd nextpay
+flutter pub get
+flutter run
+```
+You'll need the backend (below) running and reachable, and the base URL in `lib/services/api_service.dart` pointed at it (`10.0.2.2` for the Android emulator, your machine's LAN IP for a physical device).
+
+---
+
+## `server/` — Backend API
+
+An Express API with Prisma/PostgreSQL underneath. This is the source of truth: every offline transaction gets re-verified here before it's considered final.
+
+**Data model** (`prisma/schema.prisma`): `User`, `Wallet`, `Transaction`, `SyncLog`, `Message`, `BankAccount`, `Withdrawal`.
+
+**Routes:**
+- `authRoutes` — register, login, OTP login, profile, user lookup by phone/id
+- `walletRoutes` — balance, wallet operations
+- `syncRoutes` — accepts queued offline transactions from the app and reconciles them
+- `messageRoutes` — send/fetch messages between two users
+- `bank` — link/unlink a bank account, request withdrawals, view withdrawal history
+- `sms_routes` — internal endpoints used by the SMS gateway (key exchange, SMS-initiated transfers) plus phone-number registration/sync for the app's own SMS payment path
+
+**Running it:**
+```bash
+cd server
+npm install
+# .env needs at least: DATABASE_URL, JWT_SECRET
+npx prisma generate
+npx prisma migrate dev
+npm run dev
+```
+
+---
+
+## `gateway/` — SMS gateway
+
+A small Express service sitting in front of Twilio. The idea: someone without the app (or without data) can still send money by texting a specific format to a Twilio number. The gateway validates the message, calls the backend's `sms_routes` transfer endpoint, and texts both parties a confirmation.
+
+**Current state:** the webhook handler in `gateway.js` is written but commented out — it's a working draft, not yet wired into the running service.
+
+**Running it:**
+```bash
+cd gateway
+npm install
+# .env needs: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER,
+#             BACKEND_API_URL, BACKEND_API_KEY, HMAC_SECRET_STORE_URL
+npm run dev
+```
+
+---
+
+## The offline flow, end to end
+
+1. App user hits "Send" with no connection.
+2. The amount is locked out of their available balance on-device immediately.
+3. The transaction is built, signed (SHA-256 over the payload plus a secret), and appended to a local per-user queue.
+4. `network_monitor.dart` notices connectivity return and kicks off a sync.
+5. The server's `syncRoutes` endpoint re-validates the signature and nonce — a tampered or replayed transaction is rejected here, not just trusted from the client.
+6. On success, the local queue entry is cleared and the real balance updates.
+
+---
+
+## License
+
+© 2026 moinworksonlocalhost. All rights reserved. This project is not open source — no part of it may be copied, modified, distributed, or reused without written permission from the author.

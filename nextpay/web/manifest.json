@@ -1,6 +1,6 @@
 {
-    "name": "nextpay",
-    "short_name": "nextpay",
+    "name": "zerobars",
+    "short_name": "zerobars",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#FFFFFF",

@@ -33,96 +33,6 @@ class _ScannerScreenState extends State<ScannerScreen> {
     super.dispose();
   }
 
-  // Future<void> _handleBarcodeScanned(BarcodeCapture capture) async {
-  //   if (_scanned) return;
-
-  //   final barcodes = capture.barcodes;
-  //   if (barcodes.isEmpty) return;
-
-  //   final data = barcodes.first.rawValue;
-  //   if (data == null || data.trim().isEmpty) return;
-
-  //   setState(() => _scanned = true);
-
-  //   String? receiverId;
-  //   String? receiverName;
-
-  //   try {
-  //     final parsed = Map<String, dynamic>.from(jsonDecode(data));
-
-  //     receiverId = parsed["userId"]?.toString();
-  //     receiverName = parsed["receiverName"]?.toString();
-  //   } catch (_) {
-  //     // Support old/plain QR codes
-  //     receiverId = data.trim();
-  //   }
-
-  //   if (receiverId == null || receiverId!.isEmpty) {
-  //     setState(() => _scanned = false);
-
-  //     _showAlert(
-  //       "Invalid QR code",
-  //       "This QR code does not contain a valid NextPay user ID.",
-  //     );
-
-  //     return;
-  //   }
-
-  //   try {
-  //     // Fetch the latest receiver information from backend.
-  //     final response = await ApiService.instance.get(
-  //       "/auth/users/by-id/$receiverId",
-  //     );
-
-  //     final user = Map<String, dynamic>.from(response.data);
-
-  //     final userId = user["id"]?.toString() ?? receiverId!;
-  //     final userName =
-  //         user["name"]?.toString() ??
-  //             receiverName ??
-  //             "Unknown User";
-
-  //     final userPhone = user["phone"]?.toString() ?? "";
-
-  //     if (!mounted) return;
-
-  //     // Go straight to the amount-entry / send screen, GPay-style — no
-  //     // detour through the contact's profile/history first.
-  //     Navigator.pushReplacement(
-  //       context,
-  //       MaterialPageRoute(
-  //         builder: (_) => PaymentSheetScreen(
-  //           receiverId: userId,
-  //           receiverName: userName,
-  //           receiverPhone: userPhone,
-  //         ),
-  //       ),
-  //     );
-  //   } on DioException catch (e) {
-  //     debugPrint("QR USER LOOKUP ERROR: $e");
-
-  //     if (!mounted) return;
-
-  //     setState(() => _scanned = false);
-
-  //     _showAlert(
-  //       "User not found",
-  //       "We couldn't find this NextPay account. Please check the QR code and try again.",
-  //     );
-  //   } catch (e) {
-  //     debugPrint("QR SCAN ERROR: $e");
-
-  //     if (!mounted) return;
-
-  //     setState(() => _scanned = false);
-
-  //     _showAlert(
-  //       "Something went wrong",
-  //       "Unable to load the receiver profile. Please try again.",
-  //     );
-  //   }
-  // }
-
   Future<void> _handleBarcodeScanned(BarcodeCapture capture) async {
   if (_scanned) return;
 
@@ -152,7 +62,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
     setState(() => _scanned = false);
     _showAlert(
       "Invalid QR code",
-      "This QR code does not contain a valid NextPay user ID.",
+      "This QR code does not contain a valid ZeroBars user ID.",
     );
     return;
   }
@@ -167,7 +77,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
     MaterialPageRoute(
       builder: (_) => PaymentSheetScreen(
         receiverId: receiverId!,
-        receiverName: receiverName ?? "NextPay User",
+        receiverName: receiverName ?? "ZeroBars User",
         receiverPhone: receiverPhone ?? "",
       ),
     ),

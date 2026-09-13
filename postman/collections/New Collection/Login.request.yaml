@@ -1,0 +1,27 @@
+$kind: http-request
+name: Login
+description: 'Login with email and password to get a JWT token. The token is saved to the {{authToken}} collection variable automatically.'
+url: 'https://nextpay-j4pu.onrender.com/api/auth/login'
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+        "email": "{{email}}",
+        "password": "{{password}}"
+    }
+order: 1000
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      const res = pm.response.json();
+      if (res.token) {
+          pm.collectionVariables.set("authToken", res.token);
+          console.log("✅ Token saved to collection variable: authToken");
+      } else {
+          console.error("❌ No token in response:", JSON.stringify(res));
+      }

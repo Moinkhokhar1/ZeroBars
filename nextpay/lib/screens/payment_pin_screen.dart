@@ -8,7 +8,7 @@ import '../widgets/forgot_pin_flow.dart';
 
 const _pinLength = 6;
 
-/// NextPay payment PIN gate — reuses the same PIN / biometric the user set
+/// ZeroBars payment PIN gate — reuses the same PIN / biometric the user set
 /// during app onboarding. Returns `true` when verified, `false` on cancel.
 class PaymentPinScreen extends StatefulWidget {
   final String title;
@@ -16,7 +16,7 @@ class PaymentPinScreen extends StatefulWidget {
 
   const PaymentPinScreen({
     super.key,
-    this.title = 'Enter NextPay PIN',
+    this.title = 'Enter ZeroBars PIN',
     this.subtitle = 'Confirm your payment with your 6-digit PIN',
   });
 

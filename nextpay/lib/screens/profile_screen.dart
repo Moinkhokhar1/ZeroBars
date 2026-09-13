@@ -1579,7 +1579,7 @@ class _QrCodeScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 20),
                           Text(
-                            "Scan to pay with NextPay app",
+                            "Scan to pay with ZeroBars app",
                             style: TextStyle(fontSize: 13, color: c.textSecondary),
                           ),
                           const SizedBox(height: 20),
@@ -1688,7 +1688,7 @@ class _QrCodeScreen extends StatelessWidget {
 
                     const SizedBox(height: 28),
                     Text(
-                      "Powered by NextPay",
+                      "Powered by ZeroBars",
                       style: TextStyle(fontSize: 11, color: c.textSecondary),
                     ),
                   ],

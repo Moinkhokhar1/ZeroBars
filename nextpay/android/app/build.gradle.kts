@@ -14,7 +14,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.nextpay"
+    namespace = "com.example.zerobars"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 

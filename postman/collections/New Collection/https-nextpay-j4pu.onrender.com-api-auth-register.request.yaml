@@ -1,0 +1,9 @@
+$kind: http-request
+name: https://nextpay-j4pu.onrender.com/api/auth/register
+description: ""
+url: https://nextpay-j4pu.onrender.com/api/auth/registe
+method: POST
+body:
+  type: json
+  content: ""
+order: 1789269034728
