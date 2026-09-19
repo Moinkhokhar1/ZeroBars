@@ -1,0 +1,317 @@
+diff --git a/nextpay/lib/app_colors.dart b/nextpay/lib/app_colors.dart
+index 4e2d14e..0b883e4 100644
+--- a/nextpay/lib/app_colors.dart
++++ b/nextpay/lib/app_colors.dart
+@@ -7,32 +7,41 @@ class AppColors {
+   const AppColors({required this.isDark});
+ 
+   // ── Backgrounds ───────────────────────────────────────────────────
+-  Color get bg         => isDark ? const Color(0xFF0F0F13) : const Color(0xFFF5F5F7);
+-  Color get surface    => isDark ? const Color(0xFF1C1C22) : const Color(0xFFFFFFFF);
+-  Color get surfaceAlt => isDark ? const Color(0xFF26262F) : const Color(0xFFF0F0F5);
++  // Dark mode now leans into a true near-black, glow-friendly canvas
++  // (matches the reference brand) instead of a flat dark grey.
++  Color get bg         => isDark ? const Color(0xFF0A0910) : const Color(0xFFF8F6F2);
++  Color get surface    => isDark ? const Color(0xFF17131F) : const Color(0xFFFFFFFF);
++  Color get surfaceAlt => isDark ? const Color(0xFF201A2C) : const Color(0xFFF2EEE7);
+ 
+   // ── Border ────────────────────────────────────────────────────────
+-  Color get border => isDark ? const Color(0xFF2E2E3A) : const Color(0xFFE8E8EE);
++  Color get border => isDark ? const Color(0xFF2E2740) : const Color(0xFFEBE6DC);
+ 
+   // ── Text ──────────────────────────────────────────────────────────
+-  Color get textPrimary   => isDark ? const Color(0xFFF2F2F7) : const Color(0xFF1A1A2E);
+-  Color get textSecondary => isDark ? const Color(0xFF8E8EA0) : const Color(0xFF6B6B80);
+-
+-  // ── Purple (primary) ──────────────────────────────────────────────
+-  Color get purple      => isDark ? const Color(0xFF9D7BFF) : const Color(0xFF6C47FF);
+-  Color get purpleDark  => isDark ? const Color(0xFFBBA4FF) : const Color(0xFF4A2FCC);
+-  Color get purpleLight => isDark ? const Color(0xFF9D7BFF).withOpacity(0.15)
+-      : const Color(0xFF6C47FF).withOpacity(0.08);
++  Color get textPrimary   => isDark ? const Color(0xFFF6F3FB) : const Color(0xFF1B1625);
++  Color get textSecondary => isDark ? const Color(0xFF9992AD) : const Color(0xFF6B6478);
++
++  // ── Purple (brand / primary) ───────────────────────────────────────
++  // Deep violet, matching the reference app's scan/splash screens.
++  Color get purple      => isDark ? const Color(0xFFAB8BFF) : const Color(0xFF7C3AED);
++  Color get purpleDark  => isDark ? const Color(0xFFD4C4FF) : const Color(0xFF5B21B6);
++  Color get purpleLight => isDark ? const Color(0xFFAB8BFF).withOpacity(0.16)
++      : const Color(0xFF7C3AED).withOpacity(0.08);
++  // Soft neon halo for BoxShadow behind hero surfaces (balance card, CTAs) —
++  // additive, doesn't replace anything already using `purple`.
++  Color get purpleGlow => isDark ? const Color(0xFF8B5CF6).withOpacity(0.35)
++      : const Color(0xFF7C3AED).withOpacity(0.18);
+ 
+   // ── Teal ──────────────────────────────────────────────────────────
+   Color get teal      => isDark ? const Color(0xFF2DD4BF) : const Color(0xFF0D9488);
+   Color get tealLight => isDark ? const Color(0xFF2DD4BF).withOpacity(0.15)
+       : const Color(0xFF0D9488).withOpacity(0.08);
+ 
+-  // ── Amber ─────────────────────────────────────────────────────────
+-  Color get amber      => isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706);
+-  Color get amberLight => isDark ? const Color(0xFFFBBF24).withOpacity(0.15)
+-      : const Color(0xFFD97706).withOpacity(0.08);
++  // ── Amber (brand orange — the reference app's "P" mark / reward glow) ──
++  Color get amber      => isDark ? const Color(0xFFFF8A3D) : const Color(0xFFE8480C);
++  Color get amberLight => isDark ? const Color(0xFFFF8A3D).withOpacity(0.16)
++      : const Color(0xFFE8480C).withOpacity(0.08);
++  Color get amberGlow => isDark ? const Color(0xFFFF6B1A).withOpacity(0.35)
++      : const Color(0xFFE8480C).withOpacity(0.18);
+ 
+   // ── Blue ──────────────────────────────────────────────────────────
+   Color get blue      => isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB);
+@@ -48,4 +57,4 @@ class AppColors {
+   Color get dangerText => isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626);
+   Color get dangerBg   => isDark ? const Color(0xFFF87171).withOpacity(0.15)
+       : const Color(0xFFDC2626).withOpacity(0.08);
+-}
+\ No newline at end of file
++}
+diff --git a/nextpay/lib/providers/theme_provider.dart b/nextpay/lib/providers/theme_provider.dart
+index e511061..a0e1d34 100644
+--- a/nextpay/lib/providers/theme_provider.dart
++++ b/nextpay/lib/providers/theme_provider.dart
+@@ -24,13 +24,13 @@ class ThemeProvider extends ChangeNotifier {
+ 
+   static final _lightTheme = ThemeData(
+     brightness: Brightness.light,
+-    scaffoldBackgroundColor: const Color(0xFFF5F5F7),
++    scaffoldBackgroundColor: const Color(0xFFF8F6F2),
+     fontFamily: 'SF Pro Display',
+   );
+ 
+   static final _darkTheme = ThemeData(
+     brightness: Brightness.dark,
+-    scaffoldBackgroundColor: const Color(0xFF0F0F13),
++    scaffoldBackgroundColor: const Color(0xFF0A0910),
+     fontFamily: 'SF Pro Display',
+   );
+ }
+\ No newline at end of file
+diff --git a/nextpay/lib/screens/login_screen.dart b/nextpay/lib/screens/login_screen.dart
+index 23b6e0b..3c71c58 100644
+--- a/nextpay/lib/screens/login_screen.dart
++++ b/nextpay/lib/screens/login_screen.dart
+@@ -9,20 +9,20 @@ import 'register_screen.dart';
+ import 'otp_input_field.dart';
+ import '../widgets/app_feedback.dart';
+ 
+-// ── Design tokens (matches home_screen.dart) ───────────────────
+-const _bg = Color(0xFFF7F6F2);
++// ── Design tokens (matches app_colors.dart) ───────────────────
++const _bg = Color(0xFFF8F6F2);
+ const _surface = Colors.white;
+-const _textPrimary = Color(0xFF1A1A1A);
+-const _textSecondary = Color(0xFF6B6B68);
+-const _border = Color(0xFFE9E7E1);
++const _textPrimary = Color(0xFF1B1625);
++const _textSecondary = Color(0xFF6B6478);
++const _border = Color(0xFFEBE6DC);
+ 
+-const _purple = Color(0xFF534AB7);
+-const _purpleDark = Color(0xFF26215C);
++const _purple = Color(0xFF7C3AED);
++const _purpleDark = Color(0xFF5B21B6);
+ 
+ // Accent used specifically for the mobile-number / OTP step, matching the
+ // updated design.
+-const _accent = Color(0xFF4A2FCC);
+-const _accentDark = Color(0xFFBBA4FF);
++const _accent = Color(0xFF7C3AED);
++const _accentDark = Color(0xFFD4C4FF);
+ 
+ const _otpLength = 6;
+ const _resendSeconds = 30;
+diff --git a/nextpay/lib/screens/onboarding_carousel_screen.dart b/nextpay/lib/screens/onboarding_carousel_screen.dart
+index b69bc2d..78783d0 100644
+--- a/nextpay/lib/screens/onboarding_carousel_screen.dart
++++ b/nextpay/lib/screens/onboarding_carousel_screen.dart
+@@ -4,15 +4,15 @@ import 'login_screen.dart';
+ import 'register_screen.dart';
+ 
+ // ── Design tokens (matches login_screen.dart / register_screen.dart) ──
+-const _bg = Color(0xFFF7F6F2);
++const _bg = Color(0xFFF8F6F2);
+ const _surface = Colors.white;
+-const _textPrimary = Color(0xFF1A1A1A);
+-const _textSecondary = Color(0xFF6B6B68);
+-const _border = Color(0xFFE9E7E1);
++const _textPrimary = Color(0xFF1B1625);
++const _textSecondary = Color(0xFF6B6478);
++const _border = Color(0xFFEBE6DC);
+ 
+-const _purple = Color(0xFF534AB7);
+-const _purpleDark = Color(0xFF26215C);
+-const _accent = Color(0xFF4A2FCC);
++const _purple = Color(0xFF7C3AED);
++const _purpleDark = Color(0xFF5B21B6);
++const _accent = Color(0xFF7C3AED);
+ 
+ const _onboardingSeenKey = 'has_seen_onboarding';
+ 
+diff --git a/nextpay/lib/screens/profile_screen.dart b/nextpay/lib/screens/profile_screen.dart
+index 5501886..90783c3 100644
+--- a/nextpay/lib/screens/profile_screen.dart
++++ b/nextpay/lib/screens/profile_screen.dart
+@@ -840,7 +840,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
+                               width: 40,
+                               height: 40,
+                               decoration: const BoxDecoration(
+-                                color: Color(0xFF534AB7),
++                                color: Color(0xFF7C3AED),
+                                 shape: BoxShape.circle,
+                               ),
+                               clipBehavior: Clip.antiAlias,
+diff --git a/nextpay/lib/screens/receive_screen.dart b/nextpay/lib/screens/receive_screen.dart
+index 5251afa..e2b7d8b 100644
+--- a/nextpay/lib/screens/receive_screen.dart
++++ b/nextpay/lib/screens/receive_screen.dart
+@@ -6,12 +6,12 @@ import 'package:flutter_tts/flutter_tts.dart';
+ import '../providers/auth_provider.dart';
+ import '../services/storage_service.dart';
+ 
+-const _bg = Color(0xFFF3EBDD);
+-const _dark = Color(0xFF1A0A00);
+-const _border = Color(0xFF111111);
+-const _orange = Color(0xFFC85A1E);
+-const _muted = Color(0xFF9A7A5A);
+-const _green = Color(0xFF1E6B37);
++const _bg = Color(0xFFF8F6F2);
++const _dark = Color(0xFF1B1625);
++const _border = Color(0xFFEBE6DC);
++const _orange = Color(0xFFE8480C);
++const _muted = Color(0xFF6B6478);
++const _green = Color(0xFF16A34A);
+ 
+ class ReceiveScreen extends StatefulWidget {
+   const ReceiveScreen({super.key});
+@@ -129,8 +129,8 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
+                     height: 42,
+                     decoration: BoxDecoration(
+                       color: Colors.white.withOpacity(0.08),
+-                      border: Border.all(color: Colors.white.withOpacity(0.15), width: 2),
+-                      borderRadius: BorderRadius.circular(4),
++                      border: Border.all(color: Colors.white.withOpacity(0.15), width: 1),
++                      borderRadius: BorderRadius.circular(13),
+                     ),
+                     alignment: Alignment.center,
+                     child: const Text("←", style: TextStyle(color: _bg, fontSize: 20, fontWeight: FontWeight.w900)),
+@@ -157,7 +157,11 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
+                 children: [
+                   Expanded(
+                     child: Container(
+-                      decoration: BoxDecoration(border: Border.all(color: _border, width: 3)),
++                      clipBehavior: Clip.antiAlias,
++                      decoration: BoxDecoration(
++                        border: Border.all(color: _border, width: 1),
++                        borderRadius: BorderRadius.circular(20),
++                      ),
+                       child: MobileScanner(
+                         controller: _controller,
+                         onDetect: _handleScan,
+@@ -211,19 +215,31 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
+             ),
+             const SizedBox(height: 32),
+             Container(
+-              decoration: BoxDecoration(color: _orange, border: Border.all(color: _border, width: 3)),
++              decoration: BoxDecoration(
++                color: _orange,
++                borderRadius: BorderRadius.circular(16),
++                boxShadow: [
++                  BoxShadow(
++                    color: _orange.withOpacity(0.35),
++                    blurRadius: 20,
++                    offset: const Offset(0, 8),
++                  ),
++                ],
++              ),
+               child: Material(
+                 color: Colors.transparent,
++                borderRadius: BorderRadius.circular(16),
+                 child: InkWell(
++                  borderRadius: BorderRadius.circular(16),
+                   onTap: () => setState(() {
+                     _scanned = false;
+                     _lastPayment = null;
+                   }),
+                   child: const Padding(
+-                    padding: EdgeInsets.symmetric(vertical: 14, horizontal: 32),
++                    padding: EdgeInsets.symmetric(vertical: 15, horizontal: 32),
+                     child: Text(
+-                      "SCAN NEXT PAYMENT",
+-                      style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 2),
++                      "Scan next payment",
++                      style: TextStyle(color: Colors.white, fontSize: 14.5, fontWeight: FontWeight.w700),
+                     ),
+                   ),
+                 ),
+diff --git a/nextpay/lib/screens/register_screen.dart b/nextpay/lib/screens/register_screen.dart
+index f47017b..ad41f9c 100644
+--- a/nextpay/lib/screens/register_screen.dart
++++ b/nextpay/lib/screens/register_screen.dart
+@@ -9,15 +9,15 @@ import 'home_screen.dart';
+ import 'login_screen.dart';
+ 
+ // ── Design tokens (matches home_screen.dart / login_screen.dart) ─
+-const _bg = Color(0xFFF7F6F2);
++const _bg = Color(0xFFF8F6F2);
+ const _surface = Colors.white;
+-const _textPrimary = Color(0xFF1A1A1A);
+-const _textSecondary = Color(0xFF6B6B68);
+-const _border = Color(0xFFE9E7E1);
++const _textPrimary = Color(0xFF1B1625);
++const _textSecondary = Color(0xFF6B6478);
++const _border = Color(0xFFEBE6DC);
+ 
+-const _purple = Color(0xFF534AB7);
+-const _purpleDark = Color(0xFF26215C);
+-const _purpleLight = Color(0xFFEEEDFE);
++const _purple = Color(0xFF7C3AED);
++const _purpleDark = Color(0xFF5B21B6);
++const _purpleLight = Color(0xFFF1EBFF);
+ 
+ class RegisterScreen extends StatefulWidget {
+   const RegisterScreen({super.key});
+diff --git a/nextpay/lib/screens/scanner_screen.dart b/nextpay/lib/screens/scanner_screen.dart
+index 0c06353..28d4860 100644
+--- a/nextpay/lib/screens/scanner_screen.dart
++++ b/nextpay/lib/screens/scanner_screen.dart
+@@ -12,7 +12,7 @@ import '../services/api_service.dart';
+ const _scrim = Color(0xFF14141A);
+ const _textOnDark = Colors.white;
+ const _mutedOnDark = Color(0xFFA3A3AC);
+-const _purple = Color(0xFF534AB7);
++const _purple = Color(0xFF7C3AED);
+ 
+ class ScannerScreen extends StatefulWidget {
+   const ScannerScreen({super.key});
+diff --git a/nextpay/lib/screens/splash_screen.dart b/nextpay/lib/screens/splash_screen.dart
+index 240bbfc..69a29f5 100644
+--- a/nextpay/lib/screens/splash_screen.dart
++++ b/nextpay/lib/screens/splash_screen.dart
+@@ -3,9 +3,9 @@ import 'onboarding_carousel_screen.dart';
+ 
+ // ── Design tokens (dark splash variant of the purple used across
+ //    login_screen.dart / register_screen.dart) ─────────────────────
+-const _splashBg = Color(0xFF0E0C16);
+-const _purple = Color(0xFF6C4CF1);
+-const _purpleGlow = Color(0xFF8B6BFF);
++const _splashBg = Color(0xFF0A0910);
++const _purple = Color(0xFF7C3AED);
++const _purpleGlow = Color(0xFFAB8BFF);
+ 
+ /// First screen a brand-new user sees. Shows the NextPay wordmark with a
+ /// soft purple glow, then hands off to [OnboardingCarouselScreen] once the
+@@ -111,9 +111,9 @@ class _Wordmark extends StatelessWidget {
+             shape: BoxShape.circle,
+             boxShadow: [
+               BoxShadow(
+-                color: _purpleGlow.withValues(alpha: 0.45),
+-                blurRadius: 80,
+-                spreadRadius: 10,
++                color: _purpleGlow.withValues(alpha: 0.55),
++                blurRadius: 100,
++                spreadRadius: 14,
+               ),
+             ],
+           ),

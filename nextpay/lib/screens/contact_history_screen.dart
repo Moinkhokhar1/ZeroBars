@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:nextpay/screens/payment_sheet_screen.dart';
+import 'package:zerobars/screens/payment_sheet_screen.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:nextpay/services/app_lock_service.dart';
+import 'package:zerobars/services/app_lock_service.dart';
 import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/theme_provider.dart';
