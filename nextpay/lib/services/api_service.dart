@@ -6,8 +6,8 @@ class ApiService {
   static final Dio _dio = Dio(
     BaseOptions(
       // baseUrl: "http://172.20.10.4:8000/api", //physical device
-      //  baseUrl: "http://10.0.2.2:8000/api",  //emulator device
-      baseUrl: "https://nextpay-j4pu.onrender.com/api",
+       baseUrl: "http://10.0.9.223:8000/api",  //emulator device
+      // baseUrl: "https://nextpay-j4pu.onrender.com/api",
       // ipconfig getifaddr en0
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),

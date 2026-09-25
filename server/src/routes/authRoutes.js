@@ -1,5 +1,6 @@
 const express = require("express");
 const prisma = require("../config/db");
+const { normalizePhone } = require("../utils/phoneUtils");
 const router = express.Router();
 
 const {
@@ -19,11 +20,10 @@ router.post("/verify-otp", verifyLoginOtp);
 router.get("/profile", authMiddleware, getProfile);
 router.get("/users/by-phone/:phone", authMiddleware, async (req, res) => {
   try {
-    let phone = normalizeIndianPhone(req.params.phone.trim());
+    const phone = normalizePhone(req.params.phone.trim());
 
-    // If user enters without +91, add it
-    if (!phone.startsWith("+91")) {
-      phone = `+91${phone}`;
+    if (!phone) {
+      return res.status(400).json({ message: "Invalid phone number" });
     }
 
     const user = await prisma.user.findUnique({
@@ -77,23 +77,5 @@ router.get("/users/by-id/:id", authMiddleware, async (req, res) => {
     });
   }
 });
-
-function normalizeIndianPhone(phone) {
-  let digits = String(phone).replace(/\D/g, "");
-
-  if (digits.startsWith("91") && digits.length === 12) {
-    digits = digits.substring(2);
-  }
-
-  if (digits.startsWith("0") && digits.length === 11) {
-    digits = digits.substring(1);
-  }
-
-  if (digits.length !== 10) {
-    return null;
-  }
-
-  return `+91${digits}`;
-}
 
 module.exports = router;

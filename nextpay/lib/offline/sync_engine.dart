@@ -72,11 +72,12 @@ class SyncEngine {
 
       // Re-sign with the server-compatible SHA256 scheme so older pending
       // txs (e.g. signed with Ed25519) can still sync after a client update.
-      final resignedTransactions = transactions.map((tx) {
+      final resignedTransactions = <Map<String, dynamic>>[];
+      for (final tx in transactions) {
         final map = Map<String, dynamic>.from(tx as Map);
-        map['signature'] = signTransaction(map);
-        return map;
-      }).toList();
+        map['signature'] = await signTransaction(map);
+        resignedTransactions.add(map);
+      }
 
       await StorageService.setItem(storageKey, jsonEncode(resignedTransactions));
 

@@ -19,9 +19,15 @@ class SmsCryptoUtil {
       await prefs.setString(_secretKeyPref, key);
 
       // ── Sync to backend so gateway can verify HMAC ──────────
+      // NOTE: this must hit the authenticated sync route, not the
+      // internal gateway-only lookup route — this was previously
+      // posting to '/users/sms-key' (no such route exists; that path
+      // is GET-only and requires the internal gateway API key), so
+      // this sync silently 404'd and only SmsKeySyncService.syncIfNeeded()
+      // (called after login) was actually persisting the key.
       if (userId != null) {
         try {
-          await ApiService.instance.post('/users/sms-key', data: {
+          await ApiService.instance.post('/users/sync-sms-key', data: {
             'secretKey': key,
           });
         } catch (e) {
@@ -88,10 +94,18 @@ class SmsCryptoUtil {
     }
   }
 
+  // Must produce a 32-hex-char (128-bit) HMAC — the gateway
+  // (gateway/gateway.js, processPaymentSms) computes and compares against
+  // .substring(0, 32). This used to truncate to 16 hex chars (64-bit)
+  // here, which didn't match the gateway's expected length: every
+  // Buffer.from(...) comparison there would fail length-equality before
+  // even reaching timingSafeEqual, so gateway-routed SMS payments were
+  // always rejected as an invalid signature. Keep both sides at the same
+  // length if this ever changes again.
   static String _sign(String data, String key) {
     final keyBytes = utf8.encode(key);
     final dataBytes = utf8.encode(data);
     final hmac = Hmac(sha256, keyBytes);
-    return hmac.convert(dataBytes).toString().substring(0, 16);
+    return hmac.convert(dataBytes).toString().substring(0, 32);
   }
 }

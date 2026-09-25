@@ -104,7 +104,7 @@ class TransactionEngine {
         nonce: transaction.nonce,
         status: transaction.status,
       );
-      final signature = signPayloadMap(payloadMap);
+      final signature = await signPayloadMap(payloadMap, senderId: senderId);
 
       transaction = transaction.copyWith(signature: signature);
 

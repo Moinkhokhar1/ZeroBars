@@ -1,15 +1,49 @@
 const prisma = require("../config/db");
-const CryptoJS = require("crypto-js");
+const crypto = require("crypto");
 
-const SECRET_KEY = "offline-payment-secret";
+// Historically this verified against a single hardcoded string
+// ("offline-payment-secret") shared by every client install. Since that
+// value ships inside the public APK, anyone who decompiled the app could
+// extract it and forge a validly "signed" transaction moving funds out of
+// *any* user's offline balance — the signature didn't actually prove who
+// authorized the transfer.
+//
+// It now verifies against the sender's own per-user secret (the same
+// randomly generated, device-created key already used and synced by the
+// SMS payment path — see sms_routes.js / sms_crypto_util.dart). A forged
+// transaction now requires the real sender's device-generated secret,
+// which the server only has because that specific user's device synced
+// it — not a constant readable out of the app package.
+function verifySignature(originalPayload, signature, secretKey) {
+  const expected = crypto
+    .createHash("sha256")
+    .update(JSON.stringify(originalPayload) + secretKey)
+    .digest("hex");
+
+  const expectedBuf = Buffer.from(expected, "hex");
+  const receivedBuf = Buffer.from(String(signature ?? ""), "hex");
+
+  return (
+    expectedBuf.length === receivedBuf.length &&
+    crypto.timingSafeEqual(expectedBuf, receivedBuf)
+  );
+}
 
 const syncTransactions = async (req, res) => {
   try {
     const { transactions } = req.body;
+
+    if (!Array.isArray(transactions)) {
+      return res.status(400).json({ message: "transactions must be an array" });
+    }
+
     const results = [];
 
     for (const tx of transactions) {
-      // console.log("FULL TX:", JSON.stringify(tx, null, 2));
+      if (!tx.sender || !tx.receiver) {
+        results.push({ txId: tx.txId, status: "invalid_transaction" });
+        continue;
+      }
 
       // Check duplicate tx
       const existingTx = await prisma.transaction.findUnique({ where: { id: tx.txId } });
@@ -19,7 +53,19 @@ const syncTransactions = async (req, res) => {
         continue;
       }
 
-      // Verify signature
+      // The signature is only meaningful if it was produced with the
+      // claimed sender's own secret key — look that up rather than
+      // trusting a shared constant.
+      const signer = await prisma.user.findUnique({
+        where: { id: tx.sender },
+        select: { sms_secret_key: true },
+      });
+
+      if (!signer || !signer.sms_secret_key) {
+        results.push({ txId: tx.txId, status: "invalid_signature" });
+        continue;
+      }
+
       const originalPayload = {
         txId: tx.txId,
         sender: tx.sender,
@@ -30,26 +76,19 @@ const syncTransactions = async (req, res) => {
         status: tx.status,
         synced: false,
       };
-      console.log("JS PAYLOAD:", JSON.stringify(originalPayload));
-      console.log("JS SIGNATURE:", CryptoJS.SHA256(JSON.stringify(originalPayload) + SECRET_KEY).toString());
-      console.log("RECEIVED SIGNATURE:", tx.signature);
-      console.log("JS RAW STRING:", JSON.stringify(originalPayload) + SECRET_KEY);
-      const generatedSignature = CryptoJS.SHA256(
-        JSON.stringify(originalPayload) + SECRET_KEY
-      ).toString();
 
-      if (generatedSignature !== tx.signature) {
+      if (!verifySignature(originalPayload, tx.signature, signer.sms_secret_key)) {
         results.push({ txId: tx.txId, status: "invalid_signature" });
         continue;
       }
 
       // Fetch sender wallet
-      if (!tx.sender || !tx.receiver) {
+      const senderWallet = await prisma.wallet.findUnique({ where: { user_id: tx.sender } });
+
+      if (!senderWallet) {
         results.push({ txId: tx.txId, status: "invalid_transaction" });
         continue;
       }
-
-      const senderWallet = await prisma.wallet.findUnique({ where: { user_id: tx.sender } });
 
       // The sender's main `balance` was already debited when they
       // recharged their offline wallet — NOT now. What we're checking
@@ -95,7 +134,7 @@ const syncTransactions = async (req, res) => {
 
     res.status(200).json({ success: true, results });
   } catch (error) {
-    console.log(error);
+    console.error("SYNC ERROR:", error);
     res.status(500).json({ message: "Sync failed" });
   }
 };

@@ -10,11 +10,6 @@ const app = express();
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
-const twilioClient = twilio(
-  process.env.TWILIO_ACCOUNT_SID,
-  process.env.TWILIO_AUTH_TOKEN
-);
-const GATEWAY_NUMBER = process.env.TWILIO_PHONE_NUMBER;
 const BACKEND_URL = process.env.BACKEND_API_URL;
 const BACKEND_KEY = process.env.BACKEND_API_KEY;
 const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL;
