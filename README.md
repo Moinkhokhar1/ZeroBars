@@ -1,4 +1,4 @@
-<!-- # 📱 NextPay — Flutter
+# 📱 NextPay — Flutter
 
 > **Offline-first payment app built with Flutter. Send money without internet, sync when connected.**
 
@@ -612,8 +612,8 @@ This project is **not open source**. No part of this codebase may be copied, mod
 
 *Making payments accessible everywhere — even without a single bar of signal.*
 
-</div> -->
-# NextPay
+</div>
+<!-- # NextPay
 
 A peer-to-peer wallet system designed to keep working when the network doesn't. The mobile client can create, sign, and queue a payment entirely offline, then reconcile it with the backend the moment a connection comes back — no failed transfers just because someone stepped into a dead zone.
 
@@ -738,4 +738,4 @@ npm run dev
 
 ## License
 
-© 2026 moinworksonlocalhost. All rights reserved. This project is not open source — no part of it may be copied, modified, distributed, or reused without written permission from the author.
+© 2026 moinworksonlocalhost. All rights reserved. This project is not open source — no part of it may be copied, modified, distributed, or reused without written permission from the author. -->
